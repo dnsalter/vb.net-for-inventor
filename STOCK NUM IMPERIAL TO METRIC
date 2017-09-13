@@ -1,66 +1,88 @@
 '1st Edition programmed by Daniel Salter 13 Sept. 17
-'In its current state the script only supports frames with the form NUM x NUM x NUM
+'In its current state the script only supports frames with the form NUM x NUM x NUM and NUMxNUM
 'Do not attempt to use this code with another type of frame without further testing
 
 Sub Main()
 	'///
 	' Get the active assembly document.
-	MessageBox.Show("This scripts changes imperial stock numbers to metric. Please note that this script currently only works for stock numbers of the form NUM x NUM X NUM")
+	MessageBox.Show("This scripts changes imperial stock numbers to metric." & 
+	" Please note that this script currently only works For stock numbers of" &
+	" the form NUM x NUM X NUM or NUMxNUM. Clicking cancel will result in an error")
 	Dim oAsmDoc As AssemblyDocument = ThisApplication.ActiveDocument
 	' Iterate through all of the documents referenced by the assembly.
 	Dim oDoc As Document
 	For Each oDoc In oAsmDoc.AllReferencedDocuments
-	' Verify that the document is a part.
-	If oDoc.DocumentType = kPartDocumentObject Then
-	Dim oPartDoc As PartDocument = oDoc
-	'Manipulate part 
-	Dim model As String = oPartDoc.DisplayName
-	'https://forums.autodesk.com/t5/inventor-forum/ilogic-fun-changing-an-iproperty-In-Each-part-Of-an-Assembly/td-p/6223677
-	'the above code is adapted to suit this program from the link above
-	'///
-	
-	'///
-	Dim propertyName1 As String = "STOCK NUM METRIC (MM)"
-	customPropertySet = ThisDoc.Document.PropertySets.Item _
-	("Inventor User Defined Properties")
-	'http://inventortrenches.blogspot.ca/2011/05/use-ilogic-to-add-and-use-custom.html
-	'the code above was adapted from the link above to suit the needs of this script
-	'///
-		
-	Dim stockNum As String = iProperties.Value(model, "Project", "Stock Number")
-	Dim stockNumSplit() As String = Split(stockNum, " x ", , CompareMethod.Text)
-	Dim stockNumMetric(3) As String
-	Dim loopNum As Integer = 2
-	
-	If stockNum.Contains(" x ")
-		'loopNum = InputBox("How many dimensions in " & model & "?", "Input", 3) - 1
-	'this effectively ignores parts whos Stock Number iProperty will mess up this script
-		For i = 0 To loopNum
-			
-			stockNumMetric(i) = fracToInt(stockNumSplit(i)) * 25.4
-			'convert the decimal version of the mixed fraction from inches to millimeters
-		Next
+		' Verify that the document is a part.
+		If oDoc.DocumentType = kPartDocumentObject Then
+		Dim oPartDoc As PartDocument = oDoc
+		'Manipulate part 
+		Dim model As String = oPartDoc.DisplayName
+		'https://forums.autodesk.com/t5/inventor-forum/ilogic-fun-changing-an-iproperty-In-Each-part-Of-an-Assembly/td-p/6223677
+		'the above code is adapted to suit this program from the link above
+		'///
 		
 		'///
-		Try
-			prop = customPropertySet.Item(propertyName1)
-		Catch
-			customPropertySet.Add("",propertyName1)
-		End Try
-	
-		RuleParametersOutput()
-		InventorVb.DocumentUpdate()
-		iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1) & " x " & stockNumMetric(2)
+		Dim propertyName1 As String = "STOCK NUM METRIC (MM)"
+		customPropertySet = ThisDoc.Document.PropertySets.Item _
+		("Inventor User Defined Properties")
 		'http://inventortrenches.blogspot.ca/2011/05/use-ilogic-to-add-and-use-custom.html
 		'the code above was adapted from the link above to suit the needs of this script
 		'///
+			
+		Dim stockNum As String = iProperties.Value(model, "Project", "Stock Number")
+		Dim stockNumSplit() As String
+		Dim loopNum As Integer
+		Dim identifier As String
+		Dim j As Integer
 		
-	Else
-	End If
-	Else
-	End If
+		If stockNum.Contains(" x ")
+			identifier = " x "
+			j = 3
+		Else If stockNum.Contains("x")
+			identifier = "x"
+			j = 2
+		Else
+		End If
+		'Workaround allows for both 3 and 2 dimensional frames to utilize this program
+		
+		Dim stockNumMetric(j) As String
+		
+		If stockNum.Contains("x")
+			stockNumSplit = Split(stockNum, identifier, , CompareMethod.Text)
+			loopNum = InputBox("How many dimensions in " & model & "?", "Input", 3) - 1
+		'this effectively ignores parts whos Stock Number iProperty will mess up this script
+			For i = 0 To loopNum
+				stockNumMetric(i) = fracToInt(stockNumSplit(i)) * 25.4
+				'convert the decimal version of the mixed fraction from inches to millimeters
+			Next
+			
+			'///
+			Try
+				prop = customPropertySet.Item(propertyName1)
+			Catch
+				customPropertySet.Add("",propertyName1)
+			End Try
+		
+			RuleParametersOutput()
+			InventorVb.DocumentUpdate()
+			If stockNum.Contains(" x ")
+				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1) & " x " & stockNumMetric(2)
+			Else If stockNum.Contains("x")
+				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1)
+			Else
+			End If
+			'http://inventortrenches.blogspot.ca/2011/05/use-ilogic-to-add-and-use-custom.html
+			'the code above was adapted from the link above to suit the needs of this script
+			'///
+			
+		Else
+		End If
+		Else
+		End If
 	Next
 	iLogicVb.UpdateWhenDone = True
+	
+	MessageBox.Show("New custom iProperty called STOCK NUM METRIC (MM) has been associated with all appropriate parts.")
 End Sub
 
 Function fracToInt(ByVal num As String)
