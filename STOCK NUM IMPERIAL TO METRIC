@@ -1,13 +1,12 @@
 '1st Edition programmed by Daniel Salter 13 Sept. 17
-'In its current state the script only supports frames with the form NUM x NUM x NUM and NUMxNUM
-'Do not attempt to use this code with another type of frame without further testing
-
+'Use caution in using this script as it has not been tested with every type of beam
+Imports System
 Sub Main()
 	'///
 	' Get the active assembly document.
-	MessageBox.Show("This scripts changes imperial stock numbers to metric." & 
-	" Please note that this script currently only works For stock numbers of" &
-	" the form NUM x NUM X NUM or NUMxNUM. Clicking cancel will result in an error")
+	MessageBox.Show("This script changes imperial stock numbers to metric." & 
+	" Be sure to save a backup in the off chance this script fails. Clicking" &
+	" cancel will result in an Error", "Dialogue Box")
 	Dim oAsmDoc As AssemblyDocument = ThisApplication.ActiveDocument
 	' Iterate through all of the documents referenced by the assembly.
 	Dim oDoc As Document
@@ -34,6 +33,8 @@ Sub Main()
 		Dim loopNum As Integer
 		Dim identifier As String
 		Dim j As Integer
+		Dim byFive As String = "C 3C 4C 6C 7C 9 C 15W 4W 6W 24W 30"
+		'Temp workaround that accounts for numbers that need to be rounded by 5 to be correct
 		
 		If stockNum.Contains(" x ")
 			identifier = " x "
@@ -45,12 +46,35 @@ Sub Main()
 		
 		Dim stockNumMetric(countChar(stockNum,"x"c)) As String
 		
-		If stockNum.Contains("x") And Not(stockNum.Contains("(")) 
+		If stockNum.Contains("x") And Not(stockNum.Contains("("))
+		'weeds out parts that currently cause problems with the script
 			stockNumSplit = Split(stockNum, identifier, , CompareMethod.Text)
 			loopNum = countChar(stockNum,"x"c)
 		'this effectively ignores parts whos Stock Number iProperty will mess up this script
 			For i = 0 To loopNum
-				stockNumMetric(i) = fracToInt(stockNumSplit(i)) * 25.4
+				If stockNum.Contains("C") Or stockNum.Contains("W")
+				'This whole decision making structure allows for proper conversions
+					If stockNumSplit(0) = "W 40"
+						stockNumMetric(0) = 1000
+					'special case that only occurs for one designation
+					Else If byFive.Contains(stockNumSplit(0))
+						stockNumMetric(0) = Math.Round(fracToInt(stockNumSplit(0)) * 25.4 / 5) * 5
+					'convert and round to nearest 5
+					Else
+						stockNumMetric(0) = Math.Round(fracToInt(stockNumSplit(0)) * 25.4 / 10) * 10
+					'convert and round to nearest 10
+					End If
+					
+					If stockNumSplit(1) = "19"
+						stockNumMetric(1) = 24
+					'Special case that only occurs for specific weight/length
+					Else
+						stockNumMetric(1) = Math.Round(fracToInt(stockNumSplit(1)) * 1.48816)
+						'conversion from lb/ft to kg/m
+					End If
+				Else
+					stockNumMetric(i) = fracToInt(stockNumSplit(i)) * 25.4
+				End If
 				'convert the decimal version of the mixed fraction from inches to millimeters
 			Next
 			
@@ -64,7 +88,13 @@ Sub Main()
 			RuleParametersOutput()
 			InventorVb.DocumentUpdate()
 			If stockNum.Contains(" x ")
-				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1) & " x " & stockNumMetric(2)
+				If stockNum.Contains("C")
+					iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = "C " & stockNumMetric(0) & " x " & stockNumMetric(1)
+				Else If stockNum.Contains("W")
+					iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = "W " & stockNumMetric(0) & " x " & stockNumMetric(1)
+				Else
+					iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1) & " x " & stockNumMetric(2)
+				End If
 			Else If stockNum.Contains("x")
 				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1)
 			Else
@@ -80,7 +110,8 @@ Sub Main()
 	Next
 	iLogicVb.UpdateWhenDone = True
 	
-	MessageBox.Show("New custom iProperty called STOCK NUM METRIC (MM) has been associated with all appropriate parts.")
+	MessageBox.Show("New custom iProperty called STOCK NUM METRIC (MM) has been associated with all" &
+	" appropriate parts.", "Dialogue Box")
 End Sub
 
 Function fracToInt(ByVal num As String)
@@ -97,11 +128,16 @@ Function fracToInt(ByVal num As String)
 		'if the index contains a backslash (ex 1/2) this splits it into an array at the backslash (ex [1, 2])
 			temp3 = CDbl(temp2(0)) / CDbl(temp2(1))
 			'take the two numbers in the array, turns them each into doubles, and divides them
+		Else If temp1(0) = "C" Or temp1(0) = "W"
+			temp3 = CDbl(temp1(1))
 		Else
 		End If
-				
-		temp3 += CDbl(temp1(0))
-		'adds the whole number from the initial mixed fraction to the decimal conversion of the fraction
+		
+		If Not(temp1(0) = "C") And Not(temp1(0) = "W")
+			temp3 += CDbl(temp1(0))
+			'adds the whole number from the initial mixed fraction to the decimal conversion of the fraction
+		Else
+		End If
 				
 	ElseIf num.Contains("/")
 		temp2 = num.Split("/"c)
@@ -114,7 +150,7 @@ Function fracToInt(ByVal num As String)
 End Function
 
 Function countChar(ByVal stringVal as String, ByVal ch As Char) As Integer
-'function counts all occurrences of a character in a string
+'function counts all occurances of a character in a string
 	Dim count As Integer = 0
 	For Each c As Char In stringVal
 		If c = ch
