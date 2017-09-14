@@ -1,24 +1,25 @@
-'1st Edition programmed by Daniel Salter 13 Sept. 17
+'https://github.com/dnsalter/vb.net-for-inventor
 'Use caution in using this script as it has not been tested with every type of beam
 Imports System
 Sub Main()
-	'///
-	' Get the active assembly document.
+
 	MessageBox.Show("This script changes imperial stock numbers to metric." & 
 	" Be sure to save a backup in the off chance this script fails. Clicking" &
 	" cancel will result in an Error", "Dialogue Box")
+	'///
+	' Get the active assembly document.
 	Dim oAsmDoc As AssemblyDocument = ThisApplication.ActiveDocument
 	' Iterate through all of the documents referenced by the assembly.
 	Dim oDoc As Document
 	For Each oDoc In oAsmDoc.AllReferencedDocuments
-		' Verify that the document is a part.
+	' Verify that the document is a part.
 		If oDoc.DocumentType = kPartDocumentObject Then
 		Dim oPartDoc As PartDocument = oDoc
-		'Manipulate part 
+	'Manipulate part 
 		Dim model As String = oPartDoc.DisplayName
-		'https://forums.autodesk.com/t5/inventor-forum/ilogic-fun-changing-an-iproperty-In-Each-part-Of-an-Assembly/td-p/6223677
+	'https://forums.autodesk.com/t5/inventor-forum/ilogic-fun-changing-an-iproperty-In-Each-part-Of-an-Assembly/td-p/6223677
 		'the above code is adapted to suit this program from the link above
-		'///
+	'///
 		
 		'///
 		Dim propertyName1 As String = "STOCK NUM METRIC (MM)"
@@ -42,38 +43,38 @@ Sub Main()
 			identifier = "x"
 		Else
 		End If
-		'Workaround allows for both 3 and 2 dimensional frames to utilize this program
+		'Checks to see if stock number is of a certain form and changes split identifier accordingly
 		
 		Dim stockNumMetric(countChar(stockNum,"x"c)) As String
 		
 		If stockNum.Contains("x") And Not(stockNum.Contains("("))
 		'weeds out parts that currently cause problems with the script
+		'this effectively ignores parts whos Stock Number iProperty will mess up this script
 			stockNumSplit = Split(stockNum, identifier, , CompareMethod.Text)
 			loopNum = countChar(stockNum,"x"c)
-		'this effectively ignores parts whos Stock Number iProperty will mess up this script
 			For i = 0 To loopNum
 				If stockNum.Contains("C") Or stockNum.Contains("W")
 				'This whole decision making structure allows for proper conversions
 					If stockNumSplit(0) = "W 40"
 						stockNumMetric(0) = 1000
-					'special case that only occurs for one designation
+					'special case that only occurs for one wide flange beam with a depth of 40in
 					Else If byFive.Contains(stockNumSplit(0))
-						stockNumMetric(0) = Math.Round(fracToInt(stockNumSplit(0)) * 25.4 / 5) * 5
+						stockNumMetric(0) = Math.Round(inchtoMillimeter(fracToInt(stockNumSplit(0))) / 5) * 5
 					'convert and round to nearest 5
 					Else
-						stockNumMetric(0) = Math.Round(fracToInt(stockNumSplit(0)) * 25.4 / 10) * 10
+						stockNumMetric(0) = Math.Round(inchtoMillimeter(fracToInt(stockNumSplit(0)))/ 10) * 10
 					'convert and round to nearest 10
 					End If
 					
-					If stockNumSplit(1) = "19"
+					If stockNumSplit(1) = "19" And stockNumSplit(0) = "W 5"
 						stockNumMetric(1) = 24
-					'Special case that only occurs for specific weight/length
+					'Special case that only occurs for one specific wide flange beam (W 5x19)
 					Else
 						stockNumMetric(1) = Math.Round(fracToInt(stockNumSplit(1)) * 1.48816)
 						'conversion from lb/ft to kg/m
 					End If
 				Else
-					stockNumMetric(i) = fracToInt(stockNumSplit(i)) * 25.4
+					stockNumMetric(i) = inchtoMillimeter(fracToInt(stockNumSplit(i)))
 				End If
 				'convert the decimal version of the mixed fraction from inches to millimeters
 			Next
@@ -87,21 +88,19 @@ Sub Main()
 		
 			RuleParametersOutput()
 			InventorVb.DocumentUpdate()
-			If stockNum.Contains(" x ")
-				If stockNum.Contains("C")
-					iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = "C " & stockNumMetric(0) & " x " & stockNumMetric(1)
-				Else If stockNum.Contains("W")
-					iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = "W " & stockNumMetric(0) & " x " & stockNumMetric(1)
-				Else
-					iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1) & " x " & stockNumMetric(2)
-				End If
-			Else If stockNum.Contains("x")
-				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1)
-			Else
-			End If
 			'http://inventortrenches.blogspot.ca/2011/05/use-ilogic-to-add-and-use-custom.html
 			'the code above was adapted from the link above to suit the needs of this script
 			'///
+			If stockNum.Contains("C")
+				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = "C " & stockNumMetric(0) & "x" & stockNumMetric(1)
+			Else If stockNum.Contains("W")
+				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = "W " & stockNumMetric(0) & "x" & stockNumMetric(1)
+			Else If stockNum.Contains(" x ")
+				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & " x " & stockNumMetric(1) & " x " & stockNumMetric(2)
+			Else If stockNum.Contains("x")
+				iProperties.Value(model, "Custom","STOCK NUM METRIC (MM)") = stockNumMetric(0) & "x" & stockNumMetric(1)
+			Else
+			End If
 			
 		Else
 		End If
@@ -118,7 +117,7 @@ Function fracToInt(ByVal num As String)
 	Dim temp1(2) As String
 	Dim temp2(2) As String
 	Dim temp3 As Double
-	'temp1 handles strings with " " temp2 handles strings with "/" temp3 handles plain numbers
+	'temp1 handles strings with " " temp2 handles strings with "/" temp3 handles doubles
 	
 	If num.Contains(" ")
 		temp1 = num.Split(" "c)
@@ -149,7 +148,7 @@ Function fracToInt(ByVal num As String)
 	fracToInt = temp3
 End Function
 
-Function countChar(ByVal stringVal as String, ByVal ch As Char) As Integer
+Function countChar(ByVal stringVal as String, ByVal ch As Char)
 'function counts all occurances of a character in a string
 	Dim count As Integer = 0
 	For Each c As Char In stringVal
@@ -158,4 +157,8 @@ Function countChar(ByVal stringVal as String, ByVal ch As Char) As Integer
 		End If
 	Next
 	countChar = count
+End Function
+
+Function inchtoMillimeter(ByVal iniVal as Double)
+	inchtoMillimeter = iniVal * 25.4
 End Function
