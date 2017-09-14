@@ -37,19 +37,17 @@ Sub Main()
 		
 		If stockNum.Contains(" x ")
 			identifier = " x "
-			j = 3
 		Else If stockNum.Contains("x")
 			identifier = "x"
-			j = 2
 		Else
 		End If
 		'Workaround allows for both 3 and 2 dimensional frames to utilize this program
 		
-		Dim stockNumMetric(j) As String
+		Dim stockNumMetric(countChar(stockNum,"x"c)) As String
 		
-		If stockNum.Contains("x")
+		If stockNum.Contains("x") And Not(stockNum.Contains("(")) 
 			stockNumSplit = Split(stockNum, identifier, , CompareMethod.Text)
-			loopNum = InputBox("How many dimensions in " & model & "?", "Input", 3) - 1
+			loopNum = countChar(stockNum,"x"c)
 		'this effectively ignores parts whos Stock Number iProperty will mess up this script
 			For i = 0 To loopNum
 				stockNumMetric(i) = fracToInt(stockNumSplit(i)) * 25.4
@@ -113,4 +111,15 @@ Function fracToInt(ByVal num As String)
 		temp3 = CDbl(num)
 	End If
 	fracToInt = temp3
+End Function
+
+Function countChar(ByVal stringVal as String, ByVal ch As Char) As Integer
+'function counts all occurrences of a character in a string
+	Dim count As Integer = 0
+	For Each c As Char In stringVal
+		If c = ch
+			count += 1
+		End If
+	Next
+	countChar = count
 End Function
