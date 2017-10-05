@@ -30,6 +30,7 @@ Sub Main()
 		'///
 			
 		Dim stockNum As String = iProperties.Value(model, "Project", "Stock Number")
+		Dim company As String = iProperties.Value(model,"Summary", "Company")
 		Dim stockNumSplit() As String
 		Dim loopNum As Integer
 		Dim identifier As String
@@ -47,7 +48,7 @@ Sub Main()
 		
 		Dim stockNumMetric(countChar(stockNum,"x"c)) As String
 		
-		If stockNum.Contains("x") And Not(stockNum.Contains("(")) And Not(stockNum.Contains("L"))
+		If stockNum.Contains("x") And Not(stockNum.Contains("(")) And Not(company = "PCL")
 		'weeds out parts that currently cause problems with the script
 		'this effectively ignores parts whos Stock Number iProperty will mess up this script
 			stockNumSplit = Split(stockNum, identifier, , CompareMethod.Text)
