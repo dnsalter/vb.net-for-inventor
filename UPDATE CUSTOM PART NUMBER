@@ -1,0 +1,30 @@
+'https://github.com/dnsalter/vb.net-for-inventor
+Imports System
+Sub Main()
+
+	MessageBox.Show("This script will update your frames parts &
+	so their part numbers sort properly", "Dialogue Box")
+	'///
+	' Get the active assembly document.
+	Dim oAsmDoc As AssemblyDocument = ThisApplication.ActiveDocument
+	' Iterate through all of the documents referenced by the assembly.
+	Dim oDoc As Document
+	For Each oDoc In oAsmDoc.AllReferencedDocuments
+	' Verify that the document is a part.
+		If oDoc.DocumentType = kPartDocumentObject Then
+		Dim oPartDoc As PartDocument = oDoc
+	'Manipulate part 
+		Dim model As String = oPartDoc.DisplayName
+	'https://forums.autodesk.com/t5/inventor-forum/ilogic-fun-changing-an-iproperty-In-Each-part-Of-an-Assembly/td-p/6223677
+		'the above code is adapted to suit this program from the link above
+	'///
+		Dim company As String = iProperties.Value(model,"Summary", "Company")
+		If company = "PCL"
+			Dim partNum As String = iProperties.Value(model, "Project", "Part Number")
+			Dim length As String = iProperties.Value(model, "Custom", "G_L")
+	
+			iProperties.Value(model, "Project", "Part Number") = partNum + " - " + length.Remove(Len(length)-4)
+			End If
+		End If
+	Next
+End Sub
