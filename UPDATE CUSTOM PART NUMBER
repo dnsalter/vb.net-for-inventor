@@ -27,7 +27,7 @@ Sub Main()
 			Dim length As String = iProperties.Value(model, "Custom", "G_L")
 	
 			iProperties.Value(model, "Project", "Part Number") = stockNum + " - " + Convert.toString(Round(Convert.toDecimal(length.Remove(Len(length)-4))))
-			End If
+		End If
 		End If
 	Next
 End Sub
