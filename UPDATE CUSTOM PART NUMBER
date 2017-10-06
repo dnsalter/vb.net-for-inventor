@@ -3,7 +3,7 @@
 Imports System
 Sub Main()
 
-	MessageBox.Show("This script changes imperial stock numbers to metric." & 
+	MessageBox.Show("This script updates a part number to include length." & 
 	" Be sure to save a backup in the off chance this script fails. Clicking" &
 	" cancel will result in an Error", "Dialogue Box")
 	'///
